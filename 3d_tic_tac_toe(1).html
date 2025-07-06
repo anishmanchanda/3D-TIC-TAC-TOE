@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Tic-Tac-Toe (FourSight)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Orbitron', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #gameCanvas {
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        
+        #gameInfo {
+            background: rgba(0,0,0,0.7);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.2);
+            pointer-events: all;
+        }
+        
+        #currentPlayer {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px currentColor;
+        }
+        
+        #gameStatus {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+        
+        #controls {
+            background: rgba(0,0,0,0.7);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.2);
+            pointer-events: all;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 5px 15px rgba(255,107,107,0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255,107,107,0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        #layerControls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        .layerBtn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+        }
+        
+        .layerBtn:hover, .layerBtn.active {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+            transform: scale(1.05);
+        }
+        
+        #instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            padding: 30px;
+            border-radius: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(15px);
+            max-width: 500px;
+            text-align: center;
+            z-index: 2000;
+            display: none;
+        }
+        
+        #instructions h2 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #4ecdc4;
+            text-shadow: 0 0 15px currentColor;
+        }
+        
+        #instructions p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+        
+        #instructions button {
+            margin-top: 20px;
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+        }
+        
+        .winner-announcement {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            padding: 40px;
+            border-radius: 20px;
+            border: 3px solid;
+            backdrop-filter: blur(15px);
+            text-align: center;
+            z-index: 2000;
+            font-size: 32px;
+            font-weight: 900;
+            text-shadow: 0 0 20px currentColor;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+        
+        .player-x { color: #ff3333; }
+        .player-o { color: #00ff88; }
+        
+        #helpBtn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: 700;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        
+        #helpBtn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui">
+            <div id="gameInfo">
+                <div id="currentPlayer" class="player-x">Player X</div>
+                <div id="gameStatus">Click on a cube to place your marker</div>
+            </div>
+            <div id="controls">
+                <button onclick="resetGame()">New Game</button>
+            </div>
+        </div>
+        
+        <div id="layerControls">
+            <button class="layerBtn active" onclick="showLayer(0)">Layer 1</button>
+            <button class="layerBtn" onclick="showLayer(1)">Layer 2</button>
+            <button class="layerBtn" onclick="showLayer(2)">Layer 3</button>
+            <button class="layerBtn" onclick="showLayer(3)">Layer 4</button>
+            <button class="layerBtn" onclick="showAllLayers()">All</button>
+        </div>
+        
+        <button id="helpBtn" onclick="showInstructions()">?</button>
+        
+        <div id="instructions">
+            <h2>3D Tic-Tac-Toe (FourSight)</h2>
+            <p>🎯 <strong>Goal:</strong> Be the first to get 4 markers in a row!</p>
+            <p>📐 <strong>Grid:</strong> 4×4×4 cube (64 positions total)</p>
+            <p>🏆 <strong>Win by connecting 4 in:</strong></p>
+            <p>• Horizontal lines (within any layer)</p>
+            <p>• Vertical lines (within any layer)</p>
+            <p>• Diagonal lines (within any layer)</p>
+            <p>• 3D diagonals (across layers)</p>
+            <p>🎮 <strong>Controls:</strong> Click cubes to place markers, use layer buttons to focus on specific levels</p>
+            <button onclick="hideInstructions()">Start Playing!</button>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let currentPlayer = 'X';
+        let gameBoard = Array(4).fill().map(() => Array(4).fill().map(() => Array(4).fill(null)));
+        let gameWon = false;
+        let currentLayer = -1; // -1 means show all layers
+        
+        // Three.js setup
+        let scene, camera, renderer, raycaster, mouse;
+        let cubes = [];
+        let markers = [];
+        let winningLine = [];
+        
+        // Initialize the game
+        function init() {
+            setupThreeJS();
+            createGameBoard();
+            setupEventListeners();
+            animate();
+        }
+        
+        function setupThreeJS() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(8, 8, 8);
+            camera.lookAt(0, 0, 0);
+            
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: document.getElementById('gameCanvas'),
+                antialias: true,
+                alpha: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 10);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            // Add some colorful point lights
+            const pointLight1 = new THREE.PointLight(0xff3333, 0.5, 20);
+            pointLight1.position.set(5, 5, 5);
+            scene.add(pointLight1);
+            
+            const pointLight2 = new THREE.PointLight(0x00ff88, 0.5, 20);
+            pointLight2.position.set(-5, -5, -5);
+            scene.add(pointLight2);
+            
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+        }
+        
+        function createGameBoard() {
+            cubes = [];
+            markers = [];
+            
+            // Clear existing objects
+            while(scene.children.length > 0) {
+                scene.remove(scene.children[0]);
+            }
+            
+            // Re-add lights
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 10);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            const pointLight1 = new THREE.PointLight(0xff3333, 0.5, 20);
+            pointLight1.position.set(5, 5, 5);
+            scene.add(pointLight1);
+            
+            const pointLight2 = new THREE.PointLight(0x00ff88, 0.5, 20);
+            pointLight2.position.set(-5, -5, -5);
+            scene.add(pointLight2);
+            
+            // Create cube grid
+            const cubeGeometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+            const cubeMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x333333,
+                transparent: true,
+                opacity: 0.3,
+                wireframe: false
+            });
+            
+            const wireframeMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x666666,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            for (let x = 0; x < 4; x++) {
+                cubes[x] = [];
+                markers[x] = [];
+                for (let y = 0; y < 4; y++) {
+                    cubes[x][y] = [];
+                    markers[x][y] = [];
+                    for (let z = 0; z < 4; z++) {
+                        // Main cube
+                        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+                        cube.position.set(x * 2 - 3, y * 2 - 3, z * 2 - 3);
+                        cube.userData = { x, y, z };
+                        cube.castShadow = true;
+                        cube.receiveShadow = true;
+                        scene.add(cube);
+                        cubes[x][y][z] = cube;
+                        
+                        // Wireframe overlay
+                        const wireframe = new THREE.Mesh(cubeGeometry, wireframeMaterial);
+                        wireframe.position.copy(cube.position);
+                        scene.add(wireframe);
+                        
+                        markers[x][y][z] = null;
+                    }
+                }
+            }
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('gameCanvas').addEventListener('click', onCubeClick);
+            document.getElementById('gameCanvas').addEventListener('mousemove', onMouseMove);
+            document.getElementById('gameCanvas').addEventListener('mousedown', onMouseDown);
+            document.getElementById('gameCanvas').addEventListener('mouseup', onMouseUp);
+            window.addEventListener('resize', onWindowResize);
+        }
+        
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let cameraPosition = { theta: 0, phi: Math.PI / 4 };
+        const cameraRadius = 10;
+        
+        function onMouseDown(event) {
+            isDragging = true;
+            previousMousePosition = { x: event.clientX, y: event.clientY };
+        }
+        
+        function onMouseUp() {
+            isDragging = false;
+        }
+        
+        function onMouseMove(event) {
+            const rect = document.getElementById('gameCanvas').getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            
+            // Handle camera rotation
+            if (isDragging) {
+                const deltaMove = {
+                    x: event.clientX - previousMousePosition.x,
+                    y: event.clientY - previousMousePosition.y
+                };
+                
+                cameraPosition.theta += deltaMove.x * 0.01;
+                cameraPosition.phi += deltaMove.y * 0.01;
+                
+                // Constrain phi to prevent camera flipping
+                cameraPosition.phi = Math.max(0.1, Math.min(Math.PI - 0.1, cameraPosition.phi));
+                
+                updateCameraPosition();
+                
+                previousMousePosition = { x: event.clientX, y: event.clientY };
+                return; // Don't do hover effects while dragging
+            }
+            
+            // Highlight hoverable cubes
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(cubes.flat().flat().filter(cube => cube.visible));
+            
+            // Reset all cube colors
+            cubes.flat().flat().forEach(cube => {
+                if (gameBoard[cube.userData.x][cube.userData.y][cube.userData.z] === null) {
+                    cube.material.color.setHex(0x333333);
+                    cube.material.opacity = 0.3;
+                }
+            });
+            
+            // Highlight hovered cube
+            if (intersects.length > 0 && !gameWon) {
+                const hoveredCube = intersects[0].object;
+                if (gameBoard[hoveredCube.userData.x][hoveredCube.userData.y][hoveredCube.userData.z] === null) {
+                    hoveredCube.material.color.setHex(currentPlayer === 'X' ? 0xff3333 : 0x00ff88);
+                    hoveredCube.material.opacity = 0.6;
+                }
+            }
+        }
+        
+        function updateCameraPosition() {
+            camera.position.x = cameraRadius * Math.sin(cameraPosition.phi) * Math.cos(cameraPosition.theta);
+            camera.position.y = cameraRadius * Math.cos(cameraPosition.phi);
+            camera.position.z = cameraRadius * Math.sin(cameraPosition.phi) * Math.sin(cameraPosition.theta);
+            camera.lookAt(0, 0, 0);
+        }
+        
+        function onCubeClick(event) {
+            if (gameWon) return;
+            
+            const rect = document.getElementById('gameCanvas').getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(cubes.flat().flat().filter(cube => cube.visible));
+            
+            if (intersects.length > 0) {
+                const selectedCube = intersects[0].object;
+                const { x, y, z } = selectedCube.userData;
+                
+                if (gameBoard[x][y][z] === null) {
+                    placeMarker(x, y, z);
+                }
+            }
+        }
+        
+        function placeMarker(x, y, z) {
+            gameBoard[x][y][z] = currentPlayer;
+            
+            // Create marker
+            const markerGeometry = currentPlayer === 'X' ? 
+                new THREE.OctahedronGeometry(0.5) : 
+                new THREE.SphereGeometry(0.4);
+            
+            const markerMaterial = new THREE.MeshPhongMaterial({ 
+                color: currentPlayer === 'X' ? 0xff3333 : 0x00ff88,
+                shininess: 100,
+                emissive: currentPlayer === 'X' ? 0x330000 : 0x003322
+            });
+            
+            const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+            marker.position.set(x * 2 - 3, y * 2 - 3, z * 2 - 3);
+            marker.castShadow = true;
+            scene.add(marker);
+            markers[x][y][z] = marker;
+            
+            // Update cube appearance
+            const cube = cubes[x][y][z];
+            cube.material.color.setHex(currentPlayer === 'X' ? 0xff3333 : 0x00ff88);
+            cube.material.opacity = 0.8;
+            
+            // Check for win
+            if (checkWin(x, y, z)) {
+                gameWon = true;
+                highlightWinningLine();
+                showWinner();
+            } else if (isBoardFull()) {
+                showTie();
+            } else {
+                switchPlayer();
+            }
+        }
+        
+        function checkWin(x, y, z) {
+            const player = gameBoard[x][y][z];
+            
+            // All possible winning directions in 3D
+            const directions = [
+                // Horizontal (XY plane)
+                [[1,0,0], [-1,0,0]], [[0,1,0], [0,-1,0]], [[1,1,0], [-1,-1,0]], [[1,-1,0], [-1,1,0]],
+                // Vertical (XZ plane)
+                [[1,0,0], [-1,0,0]], [[0,0,1], [0,0,-1]], [[1,0,1], [-1,0,-1]], [[1,0,-1], [-1,0,1]],
+                // Depth (YZ plane)
+                [[0,1,0], [0,-1,0]], [[0,0,1], [0,0,-1]], [[0,1,1], [0,-1,-1]], [[0,1,-1], [0,-1,1]],
+                // 3D diagonals
+                [[1,1,1], [-1,-1,-1]], [[1,1,-1], [-1,-1,1]], [[1,-1,1], [-1,1,-1]], [[-1,1,1], [1,-1,-1]]
+            ];
+            
+            for (const [dir1, dir2] of directions) {
+                const line = [[x, y, z]];
+                
+                // Check positive direction
+                for (let i = 1; i < 4; i++) {
+                    const newX = x + dir1[0] * i;
+                    const newY = y + dir1[1] * i;
+                    const newZ = z + dir1[2] * i;
+                    
+                    if (newX >= 0 && newX < 4 && newY >= 0 && newY < 4 && newZ >= 0 && newZ < 4) {
+                        if (gameBoard[newX][newY][newZ] === player) {
+                            line.push([newX, newY, newZ]);
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                
+                // Check negative direction
+                for (let i = 1; i < 4; i++) {
+                    const newX = x + dir2[0] * i;
+                    const newY = y + dir2[1] * i;
+                    const newZ = z + dir2[2] * i;
+                    
+                    if (newX >= 0 && newX < 4 && newY >= 0 && newY < 4 && newZ >= 0 && newZ < 4) {
+                        if (gameBoard[newX][newY][newZ] === player) {
+                            line.unshift([newX, newY, newZ]);
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                
+                if (line.length >= 4) {
+                    winningLine = line.slice(0, 4);
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        function highlightWinningLine() {
+            winningLine.forEach(([x, y, z]) => {
+                const cube = cubes[x][y][z];
+                cube.material.emissive.setHex(0x444444);
+                
+                // Add pulsing effect
+                const marker = markers[x][y][z];
+                if (marker) {
+                    const originalScale = marker.scale.clone();
+                    const pulseAnimation = () => {
+                        marker.scale.multiplyScalar(1.1);
+                        setTimeout(() => {
+                            marker.scale.copy(originalScale);
+                            if (gameWon) setTimeout(pulseAnimation, 500);
+                        }, 250);
+                    };
+                    pulseAnimation();
+                }
+            });
+        }
+        
+        function isBoardFull() {
+            return gameBoard.flat().flat().every(cell => cell !== null);
+        }
+        
+        function switchPlayer() {
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            updateUI();
+        }
+        
+        function updateUI() {
+            const playerElement = document.getElementById('currentPlayer');
+            playerElement.textContent = `Player ${currentPlayer}`;
+            playerElement.className = currentPlayer === 'X' ? 'player-x' : 'player-o';
+        }
+        
+        function showWinner() {
+            const winnerDiv = document.createElement('div');
+            winnerDiv.className = `winner-announcement player-${currentPlayer.toLowerCase()}`;
+            winnerDiv.style.borderColor = currentPlayer === 'X' ? '#ff3333' : '#00ff88';
+            winnerDiv.innerHTML = `
+                🎉 Player ${currentPlayer} Wins! 🎉
+                <br><br>
+                <button onclick="resetGame(); this.parentElement.remove();">Play Again</button>
+            `;
+            document.body.appendChild(winnerDiv);
+        }
+        
+        function showTie() {
+            const tieDiv = document.createElement('div');
+            tieDiv.className = 'winner-announcement';
+            tieDiv.style.borderColor = '#ffd700';
+            tieDiv.style.color = '#ffd700';
+            tieDiv.innerHTML = `
+                🤝 It's a Tie! 🤝
+                <br><br>
+                <button onclick="resetGame(); this.parentElement.remove();">Play Again</button>
+            `;
+            document.body.appendChild(tieDiv);
+        }
+        
+        function resetGame() {
+            currentPlayer = 'X';
+            gameBoard = Array(4).fill().map(() => Array(4).fill().map(() => Array(4).fill(null)));
+            gameWon = false;
+            winningLine = [];
+            currentLayer = -1;
+            
+            // Remove winner announcement if exists
+            const existing = document.querySelector('.winner-announcement');
+            if (existing) existing.remove();
+            
+            createGameBoard();
+            updateUI();
+            showAllLayers();
+        }
+        
+        function showLayer(layer) {
+            currentLayer = layer;
+            
+            // Update button states
+            document.querySelectorAll('.layerBtn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.layerBtn')[layer].classList.add('active');
+            
+            // Show/hide cubes
+            for (let x = 0; x < 4; x++) {
+                for (let y = 0; y < 4; y++) {
+                    for (let z = 0; z < 4; z++) {
+                        const cube = cubes[x][y][z];
+                        const marker = markers[x][y][z];
+                        
+                        if (y === layer) {
+                            cube.visible = true;
+                            cube.material.opacity = gameBoard[x][y][z] === null ? 0.3 : 0.8;
+                            if (marker) marker.visible = true;
+                        } else {
+                            cube.visible = false;
+                            if (marker) marker.visible = false;
+                        }
+                    }
+                }
+            }
+        }
+        
+        function showAllLayers() {
+            currentLayer = -1;
+            
+            // Update button states
+            document.querySelectorAll('.layerBtn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.layerBtn')[4].classList.add('active');
+            
+            // Show all cubes
+            for (let x = 0; x < 4; x++) {
+                for (let y = 0; y < 4; y++) {
+                    for (let z = 0; z < 4; z++) {
+                        const cube = cubes[x][y][z];
+                        const marker = markers[x][y][z];
+                        
+                        cube.visible = true;
+                        cube.material.opacity = gameBoard[x][y][z] === null ? 0.3 : 0.8;
+                        if (marker) marker.visible = true;
+                    }
+                }
+            }
+        }
+        
+        function showInstructions() {
+            document.getElementById('instructions').style.display = 'block';
+        }
+        
+        function hideInstructions() {
+            document.getElementById('instructions').style.display = 'none';
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Rotate camera around the center
+            const time = Date.now() * 0.0005;
+            camera.position.x = Math.cos(time) * 10;
+            camera.position.z = Math.sin(time) * 10;
+            camera.lookAt(0, 0, 0);
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Initialize the game when page loads
+        window.addEventListener('load', init);
+        
+        // Show instructions on first load
+        window.addEventListener('load', () => {
+            setTimeout(showInstructions, 1000);
+        });
+    </script>
+</body>
+</html>
