@@ -256,11 +256,12 @@
 
     <script>
         // Game state
-        let currentPlayer = 'X';
+        let currentPlayer = '1';
         let gameBoard = Array(4).fill().map(() => Array(4).fill().map(() => Array(4).fill(null)));
         let gameWon = false;
         let currentLayer = -1; // -1 means show all layers
-        
+        let autoRotate = true;
+
         // Three.js setup
         let scene, camera, renderer, raycaster, mouse;
         let cubes = [];
@@ -365,20 +366,29 @@
                     cubes[x][y] = [];
                     markers[x][y] = [];
                     for (let z = 0; z < 4; z++) {
-                        // Main cube
-                        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-                        cube.position.set(x * 2 - 3, y * 2 - 3, z * 2 - 3);
+                        // Main cube with more spacing
+                        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial.clone());
+                        cube.position.set(x * 2.1 - 3.15, y * 2.1 - 3.15, z * 2.1 - 3.15);
                         cube.userData = { x, y, z };
                         cube.castShadow = true;
                         cube.receiveShadow = true;
                         scene.add(cube);
                         cubes[x][y][z] = cube;
-                        
-                        // Wireframe overlay
-                        const wireframe = new THREE.Mesh(cubeGeometry, wireframeMaterial);
-                        wireframe.position.copy(cube.position);
-                        scene.add(wireframe);
-                        
+
+                        // Add edge outline for better separation
+                        const edges = new THREE.EdgesGeometry(cubeGeometry);
+                        const line = new THREE.LineSegments(
+                            edges,
+                            new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2, transparent: true, opacity: 0.25 })
+                        );
+                        line.position.copy(cube.position);
+                        scene.add(line);
+
+                        // Remove or comment out the wireframe overlay if you want less clutter
+                        // const wireframe = new THREE.Mesh(cubeGeometry, wireframeMaterial);
+                        // wireframe.position.copy(cube.position);
+                        // scene.add(wireframe);
+
                         markers[x][y][z] = null;
                     }
                 }
@@ -447,7 +457,7 @@
             if (intersects.length > 0 && !gameWon) {
                 const hoveredCube = intersects[0].object;
                 if (gameBoard[hoveredCube.userData.x][hoveredCube.userData.y][hoveredCube.userData.z] === null) {
-                    hoveredCube.material.color.setHex(currentPlayer === 'X' ? 0xff3333 : 0x00ff88);
+                    hoveredCube.material.color.setHex(currentPlayer === '1' ? 0xff3333 : 0x00ff88);
                     hoveredCube.material.opacity = 0.6;
                 }
             }
@@ -462,19 +472,23 @@
         
         function onCubeClick(event) {
             if (gameWon) return;
-            
+
             const rect = document.getElementById('gameCanvas').getBoundingClientRect();
             mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-            
+
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(cubes.flat().flat().filter(cube => cube.visible));
-            
+
             if (intersects.length > 0) {
                 const selectedCube = intersects[0].object;
                 const { x, y, z } = selectedCube.userData;
-                
-                if (gameBoard[x][y][z] === null) {
+
+                // Only allow marking on the selected layer, unless "All" is selected
+                if (
+                    gameBoard[x][y][z] === null &&
+                    (currentLayer === -1 || y === currentLayer)
+                ) {
                     placeMarker(x, y, z);
                 }
             }
@@ -484,14 +498,14 @@
             gameBoard[x][y][z] = currentPlayer;
             
             // Create marker
-            const markerGeometry = currentPlayer === 'X' ? 
+            const markerGeometry = currentPlayer === '1' ? 
                 new THREE.OctahedronGeometry(0.5) : 
                 new THREE.SphereGeometry(0.4);
             
             const markerMaterial = new THREE.MeshPhongMaterial({ 
-                color: currentPlayer === 'X' ? 0xff3333 : 0x00ff88,
+                color: currentPlayer === '1' ? 0xff3333 : 0x00ff88,
                 shininess: 100,
-                emissive: currentPlayer === 'X' ? 0x330000 : 0x003322
+                emissive: currentPlayer === '1' ? 0x330000 : 0x003322
             });
             
             const marker = new THREE.Mesh(markerGeometry, markerMaterial);
@@ -502,7 +516,7 @@
             
             // Update cube appearance
             const cube = cubes[x][y][z];
-            cube.material.color.setHex(currentPlayer === 'X' ? 0xff3333 : 0x00ff88);
+            cube.material.color.setHex(currentPlayer === '1' ? 0xff3333 : 0x00ff88);
             cube.material.opacity = 0.8;
             
             // Check for win
@@ -604,20 +618,20 @@
         }
         
         function switchPlayer() {
-            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            currentPlayer = currentPlayer === '1' ? '2' : '1';
             updateUI();
         }
         
         function updateUI() {
             const playerElement = document.getElementById('currentPlayer');
             playerElement.textContent = `Player ${currentPlayer}`;
-            playerElement.className = currentPlayer === 'X' ? 'player-x' : 'player-o';
+            playerElement.className = currentPlayer === '1' ? 'player-x' : 'player-o';
         }
         
         function showWinner() {
             const winnerDiv = document.createElement('div');
-            winnerDiv.className = `winner-announcement player-${currentPlayer.toLowerCase()}`;
-            winnerDiv.style.borderColor = currentPlayer === 'X' ? '#ff3333' : '#00ff88';
+            winnerDiv.className = `winner-announcement player-${currentPlayer === '1' ? 'x' : 'o'}`;
+            winnerDiv.style.borderColor = currentPlayer === '1' ? '#ff3333' : '#00ff88';
             winnerDiv.innerHTML = `
                 🎉 Player ${currentPlayer} Wins! 🎉
                 <br><br>
@@ -640,7 +654,7 @@
         }
         
         function resetGame() {
-            currentPlayer = 'X';
+            currentPlayer = '1';
             gameBoard = Array(4).fill().map(() => Array(4).fill().map(() => Array(4).fill(null)));
             gameWon = false;
             winningLine = [];
@@ -657,51 +671,79 @@
         
         function showLayer(layer) {
             currentLayer = layer;
-            
+
             // Update button states
             document.querySelectorAll('.layerBtn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.layerBtn')[layer].classList.add('active');
-            
-            // Show/hide cubes
+
+            // Show all cubes and markers, but visually highlight only the selected layer
             for (let x = 0; x < 4; x++) {
                 for (let y = 0; y < 4; y++) {
                     for (let z = 0; z < 4; z++) {
                         const cube = cubes[x][y][z];
                         const marker = markers[x][y][z];
-                        
+
+                        // Always show all cubes and markers
+                        cube.visible = true;
+                        if (marker) marker.visible = true;
+
+                        // Highlight cubes in the selected layer, dim others
                         if (y === layer) {
-                            cube.visible = true;
-                            cube.material.opacity = gameBoard[x][y][z] === null ? 0.3 : 0.8;
-                            if (marker) marker.visible = true;
+                            cube.material.opacity = 0.35; // semi-transparent
+                            cube.material.color.setHex(0x00ffff); // cyan highlight
+                            cube.material.emissive.setHex(0x00cccc);
+                            if (marker) marker.material.opacity = 1.0;
                         } else {
-                            cube.visible = false;
-                            if (marker) marker.visible = false;
+                            cube.material.opacity = gameBoard[x][y][z] === null ? 0.08 : 0.18;
+                            cube.material.color.setHex(0x333333);
+                            cube.material.emissive.setHex(0x000000);
+                            if (marker) marker.material.opacity = 0.3;
                         }
                     }
                 }
             }
+
+            // Zoom into the selected layer
+            zoomToLayer(layer);
         }
         
         function showAllLayers() {
             currentLayer = -1;
-            
+
             // Update button states
             document.querySelectorAll('.layerBtn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.layerBtn')[4].classList.add('active');
-            
+
             // Show all cubes
             for (let x = 0; x < 4; x++) {
                 for (let y = 0; y < 4; y++) {
                     for (let z = 0; z < 4; z++) {
                         const cube = cubes[x][y][z];
                         const marker = markers[x][y][z];
-                        
+
                         cube.visible = true;
                         cube.material.opacity = gameBoard[x][y][z] === null ? 0.3 : 0.8;
-                        if (marker) marker.visible = true;
+                        cube.material.color.setHex(0x333333);
+                        cube.material.emissive.setHex(0x000000);
+                        if (marker) {
+                            marker.visible = true;
+                            marker.material.opacity = 1.0;
+                        }
                     }
                 }
             }
+
+            // Reset camera to default
+            camera.position.set(8, 8, 8);
+            camera.lookAt(0, 0, 0);
+            autoRotate = true; // Resume auto-rotation when showing all layers
+        }
+        
+        function zoomToLayer(layer) {
+            // Center of the selected layer in world coordinates
+            const y = layer * 2.1 - 3.15;
+            camera.position.set(0, y + 2, 7); // Slightly above and in front
+            camera.lookAt(0, y, 0);
         }
         
         function showInstructions() {
@@ -720,13 +762,15 @@
         
         function animate() {
             requestAnimationFrame(animate);
-            
-            // Rotate camera around the center
-            const time = Date.now() * 0.0005;
-            camera.position.x = Math.cos(time) * 10;
-            camera.position.z = Math.sin(time) * 10;
-            camera.lookAt(0, 0, 0);
-            
+
+            if (autoRotate) {
+                const time = Date.now() * 0.0005;
+                camera.position.x = Math.cos(time) * 10;
+                camera.position.z = Math.sin(time) * 10;
+                camera.position.y = 8;
+                camera.lookAt(0, 0, 0);
+            }
+
             renderer.render(scene, camera);
         }
         
