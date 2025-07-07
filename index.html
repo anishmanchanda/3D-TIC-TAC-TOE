@@ -231,10 +231,10 @@
         </div>
         
         <div id="layerControls">
-            <button class="layerBtn active" onclick="showLayer(0)">Layer 1</button>
-            <button class="layerBtn" onclick="showLayer(1)">Layer 2</button>
-            <button class="layerBtn" onclick="showLayer(2)">Layer 3</button>
-            <button class="layerBtn" onclick="showLayer(3)">Layer 4</button>
+            <button class="layerBtn active" onclick="showLayer(3)">Layer 1</button>
+            <button class="layerBtn" onclick="showLayer(2)">Layer 2</button>
+            <button class="layerBtn" onclick="showLayer(1)">Layer 3</button>
+            <button class="layerBtn" onclick="showLayer(0)">Layer 4</button>
             <button class="layerBtn" onclick="showAllLayers()">All</button>
         </div>
         
@@ -674,7 +674,8 @@
 
             // Update button states
             document.querySelectorAll('.layerBtn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.layerBtn')[layer].classList.add('active');
+            // The order is now reversed, so index is (3 - layer)
+            document.querySelectorAll('.layerBtn')[3 - layer].classList.add('active');
 
             // Show all cubes and markers, but visually highlight only the selected layer
             for (let x = 0; x < 4; x++) {
