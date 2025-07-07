@@ -674,7 +674,6 @@
 
             // Update button states
             document.querySelectorAll('.layerBtn').forEach(btn => btn.classList.remove('active'));
-            // The order is now reversed, so index is (3 - layer)
             document.querySelectorAll('.layerBtn')[3 - layer].classList.add('active');
 
             // Show all cubes and markers, but visually highlight only the selected layer
@@ -683,22 +682,33 @@
                     for (let z = 0; z < 4; z++) {
                         const cube = cubes[x][y][z];
                         const marker = markers[x][y][z];
-
-                        // Always show all cubes and markers
                         cube.visible = true;
                         if (marker) marker.visible = true;
 
-                        // Highlight cubes in the selected layer, dim others
-                        if (y === layer) {
-                            cube.material.opacity = 0.35; // semi-transparent
-                            cube.material.color.setHex(0x00ffff); // cyan highlight
-                            cube.material.emissive.setHex(0x00cccc);
+                        // Set color and opacity based on whether the cube is marked
+                        if (gameBoard[x][y][z] === '1') {
+                            cube.material.color.setHex(0xff3333);
+                            cube.material.opacity = 0.8;
+                            cube.material.emissive.setHex(0x000000);
+                            if (marker) marker.material.opacity = 1.0;
+                        } else if (gameBoard[x][y][z] === '2') {
+                            cube.material.color.setHex(0x00ff88);
+                            cube.material.opacity = 0.8;
+                            cube.material.emissive.setHex(0x000000);
                             if (marker) marker.material.opacity = 1.0;
                         } else {
-                            cube.material.opacity = gameBoard[x][y][z] === null ? 0.08 : 0.18;
-                            cube.material.color.setHex(0x333333);
-                            cube.material.emissive.setHex(0x000000);
-                            if (marker) marker.material.opacity = 0.3;
+                            // Unmarked cubes: highlight if in selected layer, dim otherwise
+                            if (y === layer) {
+                                cube.material.color.setHex(0x00cccc); // cyan highlight
+                                cube.material.opacity = 0.35;
+                                cube.material.emissive.setHex(0x00cccc);
+                                if (marker) marker.material.opacity = 1.0;
+                            } else {
+                                cube.material.color.setHex(0x333333);
+                                cube.material.opacity = 0.08;
+                                cube.material.emissive.setHex(0x000000);
+                                if (marker) marker.material.opacity = 0.3;
+                            }
                         }
                     }
                 }
@@ -721,10 +731,18 @@
                     for (let z = 0; z < 4; z++) {
                         const cube = cubes[x][y][z];
                         const marker = markers[x][y][z];
-
                         cube.visible = true;
+
+                        // Set color based on whether the cube is marked
+                        if (gameBoard[x][y][z] === '1') {
+                            cube.material.color.setHex(0xff3333);
+                        } else if (gameBoard[x][y][z] === '2') {
+                            cube.material.color.setHex(0x00ff88);
+                        } else {
+                            cube.material.color.setHex(0x333333);
+                        }
+
                         cube.material.opacity = gameBoard[x][y][z] === null ? 0.3 : 0.8;
-                        cube.material.color.setHex(0x333333);
                         cube.material.emissive.setHex(0x000000);
                         if (marker) {
                             marker.visible = true;
